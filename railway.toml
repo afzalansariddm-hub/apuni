@@ -7,3 +7,6 @@ startCommand = "npm start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
+
+[variables]
+NIXPACKS_NODE_VERSION = "22"
