@@ -1,10 +1,15 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { prisma } from "./db.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 3001;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const distPath = path.resolve(__dirname, "../dist");
 
 app.use(cors());
 app.use(express.json());
@@ -354,6 +359,23 @@ app.delete("/api/towns/:name", async (req, res) => {
   }
 });
 
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      next();
+      return;
+    }
+    if (req.path.startsWith("/api")) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    res.sendFile(path.join(distPath, "index.html"), (err) => {
+      if (err) next(err);
+    });
+  });
+}
+
 app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
+  console.log(`Server listening on http://localhost:${port}`);
 });

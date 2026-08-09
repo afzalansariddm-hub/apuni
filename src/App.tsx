@@ -188,7 +188,7 @@ export default function App() {
             <div className="view-pane" style={{ padding: "2rem 1.25rem" }}>
               <p style={{ color: "#b42318", margin: 0 }}>{error}</p>
               <p style={{ color: "var(--muted, #666)", marginTop: "0.75rem" }}>
-                Make sure the API server is running (`npm run dev:server`).
+                Could not reach the API. Check the server and database connection.
               </p>
             </div>
           ) : tab === "public" ? (
