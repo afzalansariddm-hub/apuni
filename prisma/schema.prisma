@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  createdAt DateTime   @default(now()) @map("created_at")
+  providers Provider[]
+
+  @@map("categories")
+}
+
+model Town {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  createdAt DateTime   @default(now()) @map("created_at")
+  providers Provider[]
+
+  @@map("towns")
+}
+
+model Provider {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String
+  description String   @default("")
+  verified    Boolean  @default(false)
+  categoryId  String   @map("category_id")
+  townId      String   @map("town_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  town     Town     @relation(fields: [townId], references: [id], onDelete: Restrict)
+
+  @@index([categoryId])
+  @@index([townId])
+  @@map("providers")
+}

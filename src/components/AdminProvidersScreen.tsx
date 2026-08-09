@@ -15,10 +15,10 @@ interface AdminProvidersScreenProps {
   providers: Provider[];
   categories: string[];
   towns: string[];
-  onAdd: (data: ProviderFormData) => void;
-  onUpdate: (id: string, data: ProviderFormData) => void;
-  onDelete: (id: string) => void;
-  onToggleVerified: (id: string) => void;
+  onAdd: (data: ProviderFormData) => void | Promise<void>;
+  onUpdate: (id: string, data: ProviderFormData) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
+  onToggleVerified: (id: string) => void | Promise<void>;
 }
 
 function emptyForm(categories: string[], towns: string[]): ProviderFormData {
@@ -91,11 +91,15 @@ export default function AdminProvidersScreen({
     setForm(emptyForm(categories, towns));
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!form.name.trim() || !form.phone.trim()) return;
-    if (editingId) onUpdate(editingId, form);
-    else onAdd(form);
-    closeSheet();
+    try {
+      if (editingId) await onUpdate(editingId, form);
+      else await onAdd(form);
+      closeSheet();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Save failed");
+    }
   };
 
   const overlays =
@@ -271,9 +275,15 @@ export default function AdminProvidersScreen({
                   type="button"
                   className="badge-btn"
                   title="Toggle verified status"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    onToggleVerified(p.id);
+                    try {
+                      await onToggleVerified(p.id);
+                    } catch (err) {
+                      window.alert(
+                        err instanceof Error ? err.message : "Update failed",
+                      );
+                    }
                   }}
                 >
                   <StatusBadge verified={p.verified} />
@@ -298,7 +308,15 @@ export default function AdminProvidersScreen({
                   className="icon-btn delete"
                   title="Delete"
                   aria-label={`Delete ${p.name}`}
-                  onClick={() => onDelete(p.id)}
+                  onClick={async () => {
+                    try {
+                      await onDelete(p.id);
+                    } catch (err) {
+                      window.alert(
+                        err instanceof Error ? err.message : "Delete failed",
+                      );
+                    }
+                  }}
                 >
                   <Trash2 size={15} />
                 </button>

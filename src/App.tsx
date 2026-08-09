@@ -1,6 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Bell, Search, Settings } from "lucide-react";
-import { SEED_CATEGORIES, SEED_PROVIDERS, SEED_TOWNS } from "./data";
+import {
+  createCategory,
+  createProvider,
+  createTown,
+  deleteCategory,
+  deleteProvider,
+  deleteTown,
+  fetchBootstrap,
+  renameCategory,
+  renameTown,
+  toggleProviderVerified,
+  updateProvider,
+} from "./api";
 import type { AdminScreen, Provider, ProviderFormData } from "./types";
 import AdminView from "./components/AdminView";
 import GamosaBorder from "./components/GamosaBorder";
@@ -12,9 +24,35 @@ type Tab = "public" | "admin";
 export default function App() {
   const [tab, setTab] = useState<Tab>("public");
   const [adminScreen, setAdminScreen] = useState<AdminScreen>("home");
-  const [providers, setProviders] = useState<Provider[]>(SEED_PROVIDERS);
-  const [categories, setCategories] = useState<string[]>(SEED_CATEGORIES);
-  const [towns, setTowns] = useState<string[]>(SEED_TOWNS);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [towns, setTowns] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const data = await fetchBootstrap();
+        if (cancelled) return;
+        setProviders(data.providers);
+        setCategories(data.categories);
+        setTowns(data.towns);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const goPublic = () => {
     setTab("public");
@@ -26,73 +64,79 @@ export default function App() {
     setAdminScreen("home");
   };
 
-  const handleAdd = (data: ProviderFormData) => {
-    setProviders((prev) => [{ id: `p${Date.now()}`, ...data }, ...prev]);
+  const handleAdd = async (data: ProviderFormData) => {
+    const created = await createProvider(data);
+    setProviders((prev) => [created, ...prev]);
   };
 
-  const handleUpdate = (id: string, data: ProviderFormData) => {
-    setProviders((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...data } : p)),
-    );
+  const handleUpdate = async (id: string, data: ProviderFormData) => {
+    const updated = await updateProvider(id, data);
+    setProviders((prev) => prev.map((p) => (p.id === id ? updated : p)));
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    await deleteProvider(id);
     setProviders((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const handleToggleVerified = (id: string) => {
-    setProviders((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, verified: !p.verified } : p)),
-    );
+  const handleToggleVerified = async (id: string) => {
+    const updated = await toggleProviderVerified(id);
+    setProviders((prev) => prev.map((p) => (p.id === id ? updated : p)));
   };
 
-  const handleAddCategory = (name: string) => {
+  const handleAddCategory = async (name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
+    const created = await createCategory(trimmed);
     setCategories((prev) =>
-      prev.some((c) => c.toLowerCase() === trimmed.toLowerCase())
+      prev.some((c) => c.toLowerCase() === created.name.toLowerCase())
         ? prev
-        : [...prev, trimmed],
+        : [...prev, created.name],
     );
   };
 
-  const handleRenameCategory = (oldName: string, newName: string) => {
+  const handleRenameCategory = async (oldName: string, newName: string) => {
     const trimmed = newName.trim();
     if (!trimmed || trimmed === oldName) return;
+    const renamed = await renameCategory(oldName, trimmed);
     setCategories((prev) =>
-      prev.map((c) => (c === oldName ? trimmed : c)),
+      prev.map((c) => (c === oldName ? renamed.name : c)),
     );
     setProviders((prev) =>
       prev.map((p) =>
-        p.category === oldName ? { ...p, category: trimmed } : p,
+        p.category === oldName ? { ...p, category: renamed.name } : p,
       ),
     );
   };
 
-  const handleDeleteCategory = (name: string) => {
+  const handleDeleteCategory = async (name: string) => {
+    await deleteCategory(name);
     setCategories((prev) => prev.filter((c) => c !== name));
   };
 
-  const handleAddTown = (name: string) => {
+  const handleAddTown = async (name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
+    const created = await createTown(trimmed);
     setTowns((prev) =>
-      prev.some((t) => t.toLowerCase() === trimmed.toLowerCase())
+      prev.some((t) => t.toLowerCase() === created.name.toLowerCase())
         ? prev
-        : [...prev, trimmed],
+        : [...prev, created.name],
     );
   };
 
-  const handleRenameTown = (oldName: string, newName: string) => {
+  const handleRenameTown = async (oldName: string, newName: string) => {
     const trimmed = newName.trim();
     if (!trimmed || trimmed === oldName) return;
-    setTowns((prev) => prev.map((t) => (t === oldName ? trimmed : t)));
+    const renamed = await renameTown(oldName, trimmed);
+    setTowns((prev) => prev.map((t) => (t === oldName ? renamed.name : t)));
     setProviders((prev) =>
-      prev.map((p) => (p.town === oldName ? { ...p, town: trimmed } : p)),
+      prev.map((p) => (p.town === oldName ? { ...p, town: renamed.name } : p)),
     );
   };
 
-  const handleDeleteTown = (name: string) => {
+  const handleDeleteTown = async (name: string) => {
+    await deleteTown(name);
     setTowns((prev) => prev.filter((t) => t !== name));
   };
 
@@ -134,7 +178,20 @@ export default function App() {
         </header>
 
         <main className={showFabPad ? "app-main has-fab" : "app-main"}>
-          {tab === "public" ? (
+          {loading ? (
+            <div className="view-pane" style={{ padding: "2rem 1.25rem" }}>
+              <p style={{ color: "var(--muted, #666)", margin: 0 }}>
+                Loading…
+              </p>
+            </div>
+          ) : error ? (
+            <div className="view-pane" style={{ padding: "2rem 1.25rem" }}>
+              <p style={{ color: "#b42318", margin: 0 }}>{error}</p>
+              <p style={{ color: "var(--muted, #666)", marginTop: "0.75rem" }}>
+                Make sure the API server is running (`npm run dev:server`).
+              </p>
+            </div>
+          ) : tab === "public" ? (
             <PublicView
               key="public"
               providers={providers}

@@ -17,16 +17,16 @@ interface AdminViewProps {
   towns: string[];
   screen: AdminScreen;
   onScreenChange: (screen: AdminScreen) => void;
-  onAdd: (data: ProviderFormData) => void;
-  onUpdate: (id: string, data: ProviderFormData) => void;
-  onDelete: (id: string) => void;
-  onToggleVerified: (id: string) => void;
-  onAddCategory: (name: string) => void;
-  onRenameCategory: (oldName: string, newName: string) => void;
-  onDeleteCategory: (name: string) => void;
-  onAddTown: (name: string) => void;
-  onRenameTown: (oldName: string, newName: string) => void;
-  onDeleteTown: (name: string) => void;
+  onAdd: (data: ProviderFormData) => void | Promise<void>;
+  onUpdate: (id: string, data: ProviderFormData) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
+  onToggleVerified: (id: string) => void | Promise<void>;
+  onAddCategory: (name: string) => void | Promise<void>;
+  onRenameCategory: (oldName: string, newName: string) => void | Promise<void>;
+  onDeleteCategory: (name: string) => void | Promise<void>;
+  onAddTown: (name: string) => void | Promise<void>;
+  onRenameTown: (oldName: string, newName: string) => void | Promise<void>;
+  onDeleteTown: (name: string) => void | Promise<void>;
 }
 
 export default function AdminView({

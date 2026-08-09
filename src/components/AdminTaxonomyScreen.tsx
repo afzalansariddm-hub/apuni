@@ -7,9 +7,9 @@ interface AdminTaxonomyScreenProps {
   itemLabel: string; // "category" | "town"
   items: string[];
   getCount: (name: string) => number;
-  onAdd: (name: string) => void;
-  onRename: (oldName: string, newName: string) => void;
-  onDelete: (name: string) => void;
+  onAdd: (name: string) => void | Promise<void>;
+  onRename: (oldName: string, newName: string) => void | Promise<void>;
+  onDelete: (name: string) => void | Promise<void>;
 }
 
 export default function AdminTaxonomyScreen({
@@ -48,15 +48,19 @@ export default function AdminTaxonomyScreen({
     setValue("");
   };
 
-  const submit = () => {
+  const submit = async () => {
     const trimmed = value.trim();
     if (!trimmed) return;
-    if (editingName) {
-      if (trimmed !== editingName) onRename(editingName, trimmed);
-    } else {
-      onAdd(trimmed);
+    try {
+      if (editingName) {
+        if (trimmed !== editingName) await onRename(editingName, trimmed);
+      } else {
+        await onAdd(trimmed);
+      }
+      closeSheet();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Save failed");
     }
-    closeSheet();
   };
 
   const overlays =
@@ -169,7 +173,15 @@ export default function AdminTaxonomyScreen({
                   className="icon-btn delete"
                   title="Delete"
                   aria-label={`Delete ${name}`}
-                  onClick={() => onDelete(name)}
+                  onClick={async () => {
+                    try {
+                      await onDelete(name);
+                    } catch (err) {
+                      window.alert(
+                        err instanceof Error ? err.message : "Delete failed",
+                      );
+                    }
+                  }}
                 >
                   <Trash2 size={15} />
                 </button>
